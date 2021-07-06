@@ -88,8 +88,8 @@ def probability_of_formula(
         s = [a for i, a in enumerate(chain._states) if p[i] > 0.0]
         y = chain.state_mask(s)
         s = list(set(chain.predecessors(s)) - set(s))
-        a = np.identity(n) - chain.restrict_tensor_to_states(
-            chain.probability_matrix(), s
+        a = chain.restrict_tensor_to_states(
+            np.identity(n) - chain.probability_matrix(), s
         )
         b = chain.probability_matrix() @ p
         if np.linalg.matrix_rank(a) == n:
