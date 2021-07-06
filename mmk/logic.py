@@ -3,16 +3,23 @@ Definition of the LTL-style logic for Markov chains.
 """
 __docformat__ = "google"
 
+from typing import Union
+
 from parsimonious import Grammar, NodeVisitor
+import numpy as np
+
+from .markov_chain import MarkovChain
 
 grammar = Grammar(
     r"""
-    formula         = diamond_formula / state
+    formula         = diamond_formula / state_list
     diamond_formula = diamond ws formula
 
-    diamond = "eventually" / "<>"
-    state   = ~"[A-Z0-9_]+"i
-    ws      = ~"\s+"
+    diamond         = "eventually" / "<>"
+    state           = ~"[A-Z0-9_]+"i
+    state_list      = state comma_state*
+    comma_state     = "," state
+    ws              = ~"\s+"
     """
 )
 
@@ -32,27 +39,63 @@ class FormulaVisitor(NodeVisitor):
         }
 
     def visit_state(self, node, visited_children):
-        return {"state": node.text}
+        return node.text
+
+    def visit_state_list(self, node, visited_children):
+        states = sorted([visited_children[0]] + visited_children[1])
+        return {"type": "states", "states": states}
+
+    def visit_comma_state(self, node, visited_children):
+        return visited_children[-1]
 
     def generic_visit(self, node, visited_children):
-        return None
+        return visited_children
 
 
-def parse(formula: str) -> dict:
+def parse_formula(formula: str) -> dict:
     """
     Parses a formula and returns a nested dict representing its structure. For
     example, the formula
 
-        <> state_A
+        <> state_A,state_B
 
     returns
 
         {
             "type": "eventually"
-            "child": {"state": "state_A"},
+            "child": {"states": ["state_A", "state_B"]},
         }
 
     """
     tree = grammar.parse(formula)
     visitor = FormulaVisitor()
     return visitor.visit(tree)
+
+
+def probability_of_formula(
+    chain: MarkovChain,
+    formula: Union[str, dict],
+) -> np.ndarray:
+    if isinstance(formula, str):
+        formula = parse_formula(formula)
+
+    if formula["type"] == "states":
+        return np.array([float(s in formula["states"]) for s in chain._states])
+
+    if formula["type"] == "eventually":
+        n = len(chain._states)
+        p = probability_of_formula(chain, formula["child"])
+        s = [a for i, a in enumerate(chain._states) if p[i] > 0.0]
+        y = chain.state_mask(s)
+        s = list(set(chain.predecessors(s)) - set(s))
+        a = np.identity(n) - chain.restrict_tensor_to_states(
+            chain.probability_matrix(), s
+        )
+        b = chain.probability_matrix() @ p
+        if np.linalg.matrix_rank(a) == n:
+            x = np.linalg.solve(a, b)
+        else:
+            x, *_ = np.linalg.lstsq(a, b, rcond=None)
+        return x + y
+
+    raise RuntimeError("Unknown formula type '%s'." % formula["type"])
