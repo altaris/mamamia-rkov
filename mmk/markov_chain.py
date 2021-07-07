@@ -146,9 +146,41 @@ class MarkovChain:
         self, tensor: np.ndarray, states: List[str]
     ) -> np.ndarray:
         """
-        It's simple but I don't want to document it rn.
+        Sets rows and columns of a tensor to 0 at every index not corresponding
+        to any states given as argument.
+
+        For example, consider a Markov chain whose states are
+
+            ["A", "B", "C", "D"]
+
+        if the argument `states` is
+
+            states=["A", "D"]
+
+        and tensor if the following matrix:
+
+            array([[ 1,  2,  3,  4],
+                   [ 5,  6,  7,  8],
+                   [ 9, 10, 11, 12],
+                   [13, 14, 15, 16]])
+
+        then the result is
+
+            array([[ 1,  0,  0,  4],
+                   [ 0,  0,  0,  0],
+                   [ 0,  0,  0,  0],
+                   [13,  0,  0, 16]])
+
+        The rows and columns corresponding to states `B` and `C` have been
+        zeroed.
+
+        The tensor can also be a vector.
         """
         r = len(tensor.shape)
+        if r not in [1, 2]:
+            raise NotImplementedError(
+                "The rank of the tensor should be 1 or 2."
+            )
         states_c = set(self._states) - set(states)
         indices = [self.state_index(s) for s in states_c]
         result = np.array(tensor, copy=True)
@@ -157,8 +189,6 @@ class MarkovChain:
         elif r == 2:
             result[indices] = 0.0
             result[:, indices] = 0.0
-        else:
-            raise ValueError("The rank of the tensor should be 1 or 2.")
         return result
 
     def state_index(self, state: str) -> int:
