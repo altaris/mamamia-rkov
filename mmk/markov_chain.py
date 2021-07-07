@@ -161,7 +161,35 @@ class MarkovChain:
             raise ValueError("The rank of the tensor should be 1 or 2.")
         return result
 
-    def state_distribution_to_vector(
+    def state_index(self, state: str) -> int:
+        """
+        Returns the index of a state of the Markov chain.
+        """
+        return self._states.index(state)
+
+    def state_mask(self, states: List[str]) -> np.ndarray:
+        """
+        Given a list of states, returns a vector whose entries are 1. at
+        indices corresponding to one of the given states, and 0. otherwise. For
+        example, if the states of the chains are
+
+            ["A", "B", "C", "D", "E"]
+
+        and the given list is
+
+            ["B", "E", "A"]
+
+        then the resulting vector is
+
+            array([1., 1., 0., 0., 1.])
+
+        """
+        x = np.zeros((len(self._states),), dtype=float)
+        for s in states:
+            x[self.state_index(s)] = 1.0
+        return x
+
+    def state_weights_to_vector(
         self, distribution: Dict[str, float]
     ) -> np.ndarray:
         """
@@ -195,38 +223,11 @@ class MarkovChain:
 
             array([0.9, 0. , 0.1])
 
+        See also `vector_to_state_weights`.
         """
         if not sum(distribution.values()) == 1.0:
             raise ValueError("The state probabilities don't sum up to 1.")
         return np.array([distribution.get(s, 0.0) for s in self._states])
-
-    def state_index(self, state: str) -> int:
-        """
-        Returns the index of a state of the Markov chain.
-        """
-        return self._states.index(state)
-
-    def state_mask(self, states: List[str]) -> np.ndarray:
-        """
-        Given a list of states, returns a vector whose entries are 1. at
-        indices corresponding to one of the given states, and 0. otherwise. For
-        example, if the states of the chains are
-
-            ["A", "B", "C", "D", "E"]
-
-        and the given list is
-
-            ["B", "E", "A"]
-
-        then the resulting vector is
-
-            array([1., 1., 0., 0., 1.])
-
-        """
-        x = np.zeros((len(self._states),), dtype=float)
-        for s in states:
-            x[self.state_index(s)] = 1.0
-        return x
 
     def to_graph(self) -> nx.DiGraph:
         """
@@ -241,3 +242,37 @@ class MarkovChain:
             ]
         )
         return graph
+
+    def vector_to_state_weights(self, vector: np.ndarray) -> Dict[str, float]:
+        """
+        Inverse to `vector_to_state_weights`. For example, if the Markov chain
+        is
+
+            {
+                "state_A": {
+                    "state_B": .5,
+                    "state_C": .5,
+                },
+                "state_B": {
+                    "state_A": .8,
+                    "state_C": .2,
+                },
+                "state_C": {
+                    "state_C": 1.,
+                },
+            }
+
+        and the vector is
+
+            array([0.9, 0. , 0.1])
+
+        then this methods returns the following dictionary
+
+            {
+                "state_A": .9,
+                "state_B": 0.,
+                "state_C": .1,
+            }
+
+        """
+        return dict(zip(self._states, vector))
