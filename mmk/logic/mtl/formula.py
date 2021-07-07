@@ -45,7 +45,7 @@ class Predicate(Formula):
 @dataclass
 class AlwaysFormula(Formula):
     child: Formula
-    # within: Optional[int] = None
+    within: Optional[int] = None
 
     def evaluate_on(self, chain: MarkovChain) -> np.ndarray:
         """
@@ -64,6 +64,7 @@ class AlwaysFormula(Formula):
                 child=NotFormula(
                     child=self.child,
                 ),
+                within=self.within,
             ),
         )
         return formula.evaluate_on(chain)

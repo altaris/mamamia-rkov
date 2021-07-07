@@ -12,7 +12,8 @@ from .formula import *
 
 grammar = Grammar(
     r"""
-    formula             = always_formula /
+    formula             = always_within_formula /
+                          always_formula /
                           eventually_within_formula /
                           eventually_formula /
                           not_formula /
@@ -20,6 +21,8 @@ grammar = Grammar(
                           until_formula /
                           state_list
 
+    always_within_formula
+                        = always ws within ws number ws formula
     always_formula      = always ws formula
     eventually_formula  = eventually ws formula
     eventually_within_formula
@@ -53,6 +56,12 @@ class FormulaVisitor(NodeVisitor):
 
     def visit_always_formula(self, node, visited_children):
         return AlwaysFormula(child=visited_children[-1])
+
+    def visit_always_within_formula(self, node, visited_children):
+        return AlwaysFormula(
+            child=visited_children[-1],
+            within=visited_children[4],
+        )
 
     def visit_comma_state(self, node, visited_children):
         return visited_children[-1]
