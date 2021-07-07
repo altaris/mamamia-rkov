@@ -65,7 +65,7 @@ class MarkovChain:
                     "probabilities that do not sum up to 1."
                 )
 
-    def predecessors(self, states: List[str]) -> List[str]:
+    def predecessors(self, states: Iterable[str]) -> List[str]:
         """
         Returns the list of states that have outgoing transitions towards any
         state in the provided list of states.
@@ -143,7 +143,7 @@ class MarkovChain:
         return p
 
     def restrict_tensor_to_states(
-        self, tensor: np.ndarray, states: List[str]
+        self, tensor: np.ndarray, states: Iterable[str]
     ) -> np.ndarray:
         """
         Sets rows and columns of a tensor to 0 at every index not corresponding
@@ -202,7 +202,7 @@ class MarkovChain:
             return self._states.index(state)
         return [self._states.index(s) for s in state]
 
-    def state_mask(self, states: List[str]) -> np.ndarray:
+    def state_mask(self, states: Iterable[str]) -> np.ndarray:
         """
         Given a list of states, returns a vector whose entries are 1. at
         indices corresponding to one of the given states, and 0. otherwise. For
