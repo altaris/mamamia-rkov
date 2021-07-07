@@ -191,7 +191,9 @@ class MarkovChain:
             result[:, indices] = 0.0
         return result
 
-    def state_complement(self, states: Iterable[str], all_states: Optional[Iterable[str]] = None) -> List[str]:
+    def state_complement(
+        self, states: Iterable[str], all_states: Optional[Iterable[str]] = None
+    ) -> List[str]:
         """
         Returns the complement of a set of states. The returned list is sorted.
         If `all_states` is specified, then the complement is relative to that
@@ -272,6 +274,12 @@ class MarkovChain:
         if not sum(distribution.values()) == 1.0:
             raise ValueError("The state probabilities don't sum up to 1.")
         return np.array([distribution.get(s, 0.0) for s in self._states])
+
+    def states_from_mask(self, mask: np.ndarray) -> List[str]:
+        """
+        Inverse of `state_mask`.
+        """
+        return [s for s, v in zip(self._states, mask) if v]
 
     def to_graph(self) -> nx.DiGraph:
         """

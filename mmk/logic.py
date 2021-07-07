@@ -7,6 +7,7 @@ from typing import Union
 
 from parsimonious import Grammar, NodeVisitor
 import numpy as np
+from scipy.optimize import fixed_point
 
 from .markov_chain import MarkovChain
 
@@ -15,15 +16,18 @@ grammar = Grammar(
     formula             = always_formula /
                           eventually_formula /
                           not_formula /
+                          until_formula /
                           state_list
 
     always_formula      = always ws formula
     eventually_formula  = diamond ws formula
     not_formula         = not ws formula
+    until_formula       = state_list ws until ws formula
 
     always              = "always" / "henceforth" / "[]"
     diamond             = "eventually" / "<>"
     not                 = "not" / "¬"
+    until               = "until" / "U"
 
     state               = ~"[A-Z0-9_]+"i
     comma_state         = "," state
@@ -53,6 +57,13 @@ class FormulaVisitor(NodeVisitor):
 
     def visit_not_formula(self, node, visited_children):
         return {"child": visited_children[-1], "type": "not"}
+
+    def visit_until_formula(self, node, visited_children):
+        return {
+            "left_child": visited_children[0],
+            "right_child": visited_children[-1],
+            "type": "until",
+        }
 
     def visit_state(self, node, visited_children):
         return node.text
@@ -104,7 +115,7 @@ def probability_of_formula(
                         "child": formula["child"],
                     },
                 },
-            }
+            },
         )
 
     if formula["type"] == "eventually":
@@ -125,6 +136,17 @@ def probability_of_formula(
 
     if formula["type"] == "not":
         return 1.0 - probability_of_formula(chain, formula["child"])
+
+    if formula["type"] == "until":
+        p_left = probability_of_formula(chain, formula["left_child"])
+        p_right = probability_of_formula(chain, formula["right_child"])
+        s_left = chain.states_from_mask(p_left > 0)
+        s1 = chain.states_from_mask(p_right > 0)
+        s0 = chain.state_complement(s_left + s1)
+        s = chain.state_complement(s0 + s1)
+        a = chain.restrict_tensor_to_states(chain.probability_matrix(), s)
+        b = chain.probability_matrix() @ p_right
+        return fixed_point(lambda x: a @ x + b, np.zeros(len(chain._states)))
 
     if formula["type"] == "states":
         return np.array([float(s in formula["states"]) for s in chain._states])

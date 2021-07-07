@@ -3,3 +3,4 @@ networkx
 numpy
 parsimonious
 rich
+scipy
