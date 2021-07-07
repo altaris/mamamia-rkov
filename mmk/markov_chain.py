@@ -3,7 +3,7 @@ Markov chain definition module
 """
 __docformat__ = "google"
 
-from typing import Dict, List
+from typing import Dict, Iterable, List, Union
 
 import networkx as nx
 import numpy as np
@@ -182,7 +182,7 @@ class MarkovChain:
                 "The rank of the tensor should be 1 or 2."
             )
         states_c = set(self._states) - set(states)
-        indices = [self.state_index(s) for s in states_c]
+        indices = self.state_index(states_c)
         result = np.array(tensor, copy=True)
         if r == 1:
             result[indices] = 0.0
@@ -191,11 +191,16 @@ class MarkovChain:
             result[:, indices] = 0.0
         return result
 
-    def state_index(self, state: str) -> int:
+    def state_index(
+        self, state: Union[str, Iterable[str]]
+    ) -> Union[int, List[int]]:
         """
-        Returns the index of a state of the Markov chain.
+        Returns the index of a state of the Markov chain. If given a list of
+        states, returns a list of indices instead.
         """
-        return self._states.index(state)
+        if isinstance(state, str):
+            return self._states.index(state)
+        return [self._states.index(s) for s in state]
 
     def state_mask(self, states: List[str]) -> np.ndarray:
         """
@@ -215,8 +220,7 @@ class MarkovChain:
 
         """
         x = np.zeros((len(self._states),), dtype=float)
-        for s in states:
-            x[self.state_index(s)] = 1.0
+        x[self.state_index(states)] = 1.0
         return x
 
     def state_weights_to_vector(

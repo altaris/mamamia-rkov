@@ -35,6 +35,7 @@ class FormulaVisitor(NodeVisitor):
     """
     Formula visitor
     """
+
     def visit_comma_state(self, node, visited_children):
         return visited_children[-1]
 
@@ -102,7 +103,7 @@ def probability_of_formula(
         return x + y
 
     if formula["type"] == "not":
-        return 1. - probability_of_formula(chain, formula["child"])
+        return 1.0 - probability_of_formula(chain, formula["child"])
 
     if formula["type"] == "states":
         return np.array([float(s in formula["states"]) for s in chain._states])
