@@ -12,21 +12,24 @@ from .markov_chain import MarkovChain
 
 grammar = Grammar(
     r"""
-    formula         = diamond_formula /
-                      not_formula /
-                      state_list
+    formula             = always_formula /
+                          eventually_formula /
+                          not_formula /
+                          state_list
 
-    diamond_formula = diamond ws formula
-    not_formula     = not ws formula
+    always_formula      = always ws formula
+    eventually_formula  = diamond ws formula
+    not_formula         = not ws formula
 
-    diamond         = "eventually" / "<>"
-    not             = "not" / "¬"
+    always              = "always" / "henceforth" / "[]"
+    diamond             = "eventually" / "<>"
+    not                 = "not" / "¬"
 
-    state           = ~"[A-Z0-9_]+"i
-    comma_state     = "," state
-    state_list      = state comma_state*
+    state               = ~"[A-Z0-9_]+"i
+    comma_state         = "," state
+    state_list          = state comma_state*
 
-    ws              = ~"\s+"
+    ws                  = ~"\s+"
     """
 )
 
@@ -36,10 +39,13 @@ class FormulaVisitor(NodeVisitor):
     Formula visitor
     """
 
+    def visit_always_formula(self, node, visited_children):
+        return {"child": visited_children[-1], "type": "always"}
+
     def visit_comma_state(self, node, visited_children):
         return visited_children[-1]
 
-    def visit_diamond_formula(self, node, visited_children):
+    def visit_eventually_formula(self, node, visited_children):
         return {"child": visited_children[-1], "type": "eventually"}
 
     def visit_formula(self, node, visited_children):
@@ -85,6 +91,21 @@ def probability_of_formula(
 ) -> np.ndarray:
     if isinstance(formula, str):
         formula = parse_formula(formula)
+
+    if formula["type"] == "always":
+        return probability_of_formula(
+            chain,
+            {
+                "type": "not",
+                "child": {
+                    "type": "eventually",
+                    "child": {
+                        "type": "not",
+                        "child": formula["child"],
+                    },
+                },
+            }
+        )
 
     if formula["type"] == "eventually":
         n = len(chain._states)
