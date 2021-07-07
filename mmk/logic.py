@@ -12,13 +12,20 @@ from .markov_chain import MarkovChain
 
 grammar = Grammar(
     r"""
-    formula         = diamond_formula / state_list
+    formula         = diamond_formula /
+                      not_formula /
+                      state_list
+
     diamond_formula = diamond ws formula
+    not_formula     = not ws formula
 
     diamond         = "eventually" / "<>"
+    not             = "not" / "¬"
+
     state           = ~"[A-Z0-9_]+"i
-    state_list      = state comma_state*
     comma_state     = "," state
+    state_list      = state comma_state*
+
     ws              = ~"\s+"
     """
 )
@@ -28,15 +35,17 @@ class FormulaVisitor(NodeVisitor):
     """
     Formula visitor
     """
+    def visit_comma_state(self, node, visited_children):
+        return visited_children[-1]
+
+    def visit_diamond_formula(self, node, visited_children):
+        return {"child": visited_children[-1], "type": "eventually"}
 
     def visit_formula(self, node, visited_children):
         return visited_children[0]
 
-    def visit_diamond_formula(self, node, visited_children):
-        return {
-            "child": visited_children[-1],
-            "type": "eventually",
-        }
+    def visit_not_formula(self, node, visited_children):
+        return {"child": visited_children[-1], "type": "not"}
 
     def visit_state(self, node, visited_children):
         return node.text
@@ -44,9 +53,6 @@ class FormulaVisitor(NodeVisitor):
     def visit_state_list(self, node, visited_children):
         states = sorted([visited_children[0]] + visited_children[1])
         return {"type": "states", "states": states}
-
-    def visit_comma_state(self, node, visited_children):
-        return visited_children[-1]
 
     def generic_visit(self, node, visited_children):
         return visited_children
@@ -79,9 +85,6 @@ def probability_of_formula(
     if isinstance(formula, str):
         formula = parse_formula(formula)
 
-    if formula["type"] == "states":
-        return np.array([float(s in formula["states"]) for s in chain._states])
-
     if formula["type"] == "eventually":
         n = len(chain._states)
         p = probability_of_formula(chain, formula["child"])
@@ -97,5 +100,11 @@ def probability_of_formula(
         else:
             x, *_ = np.linalg.lstsq(a, b, rcond=None)
         return x + y
+
+    if formula["type"] == "not":
+        return 1. - probability_of_formula(chain, formula["child"])
+
+    if formula["type"] == "states":
+        return np.array([float(s in formula["states"]) for s in chain._states])
 
     raise RuntimeError("Unknown formula type '%s'." % formula["type"])
