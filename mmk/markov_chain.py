@@ -3,7 +3,7 @@ Markov chain definition module
 """
 __docformat__ = "google"
 
-from typing import Dict, Iterable, List, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import networkx as nx
 import numpy as np
@@ -190,6 +190,16 @@ class MarkovChain:
             result[indices] = 0.0
             result[:, indices] = 0.0
         return result
+
+    def state_complement(self, states: Iterable[str], all_states: Optional[Iterable[str]] = None) -> List[str]:
+        """
+        Returns the complement of a set of states. The returned list is sorted.
+        If `all_states` is specified, then the complement is relative to that
+        set.
+        """
+        if all_states is None:
+            all_states = self._states
+        return sorted(list(set(all_states) - set(states)))
 
     def state_index(
         self, state: Union[str, Iterable[str]]

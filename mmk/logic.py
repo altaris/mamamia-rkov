@@ -91,7 +91,7 @@ def probability_of_formula(
         p = probability_of_formula(chain, formula["child"])
         s = [a for i, a in enumerate(chain._states) if p[i] > 0.0]
         y = chain.state_mask(s)
-        s = list(set(chain.predecessors(s)) - set(s))
+        s = chain.state_complement(s, chain.predecessors(s))
         a = chain.restrict_tensor_to_states(
             np.identity(n) - chain.probability_matrix(), s
         )
