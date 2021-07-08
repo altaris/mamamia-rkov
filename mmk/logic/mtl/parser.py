@@ -3,6 +3,7 @@ Parser for MTL
 """
 __docformat__ = "google"
 
+
 from typing import Union
 
 from parsimonious import Grammar, NodeVisitor
