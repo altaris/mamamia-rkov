@@ -19,7 +19,10 @@ from .formula import *
 grammar = Grammar(
     r"""
     formula                 = and_formula /
+                              iff_formula /
+                              implies_formula /
                               not_formula /
+                              or_formula /
                               parenthesis_formula /
                               probability_formula /
                               true /
@@ -34,15 +37,17 @@ grammar = Grammar(
                               until_within_formula /
                               until_formula
 
-    always_within_formula
-                            = always ws within ws number ws formula
     always_formula          = always ws formula
+    always_within_formula   = always ws within ws number ws formula
     and_formula             = and ws formula ws formula
     eventually_formula      = eventually ws formula
     eventually_within_formula
                             = eventually ws within ws number ws formula
+    iff_formula             = iff ws formula ws formula
+    implies_formula         = implies ws formula ws formula
     next_formula            = next ws formula
     not_formula             = not ws formula
+    or_formula              = or ws formula ws formula
     parenthesis_formula     = "(" ws formula ws ")"
     parenthesis_path_formula
                             = "(" ws path_formula ws ")"
@@ -57,8 +62,11 @@ grammar = Grammar(
     bracket         = "[" / "]"
     eventually      = "eventually" / "<>" / "◊"
     false           = "false" / "F" / "⊥"
+    iff             = "if_and_only_if" / "iff" / "<->" / "⟷" / "⇔"
+    implies         = "implies" / "->" / "→" / "⇒"
     next            = "next" / "O" / "○"
     not             = "not" / "¬"
+    or              = "or" / "\\/" / "∨" / "⋁"
     probability     = "probability" / "P" / "ℙ"
     true            = "true" / "T" / "⊤"
     until           = "until" / "U" / "⋃" / "◡"
@@ -70,7 +78,7 @@ grammar = Grammar(
 
     float           = ~"[0-9]+(\.[0-9]+)?"i
     number          = ~"[0-9]+"i
-    ws              = ~"\s+"
+    ws              = ~"[\n\s\t]+"
     """
 )
 
@@ -93,10 +101,22 @@ class FormulaVisitor(NodeVisitor):
         )
 
     def visit_and_formula(self, node, visited_children):
-        return AndFormula(
-            left_child=visited_children[2],
-            right_child=visited_children[-1],
+        return NotFormula(
+            child=AndFormula(
+                left_child=NotFormula(
+                    child=visited_children[2],
+                ),
+                right_child=NotFormula(
+                    child=visited_children[-1],
+                ),
+            )
         )
+
+    def visit_bracket(self, node, visited_children):
+        return node.text
+
+    def visit_comma_state(self, node, visited_children):
+        return visited_children[-1]
 
     def visit_eventually_formula(self, node, visited_children):
         return EventuallyFormula(child=visited_children[-1])
@@ -107,12 +127,6 @@ class FormulaVisitor(NodeVisitor):
             within=visited_children[4],
         )
 
-    def visit_bracket(self, node, visited_children):
-        return node.text
-
-    def visit_comma_state(self, node, visited_children):
-        return visited_children[-1]
-
     def visit_false(self, node, visited_children):
         return NotFormula(child=TrueFormula())
 
@@ -121,6 +135,40 @@ class FormulaVisitor(NodeVisitor):
 
     def visit_formula(self, node, visited_children):
         return visited_children[0]
+
+    def visit_iff_formula(self, node, visited_children):
+        a, b = (
+            visited_children[2],
+            visited_children[-1],
+        )
+        return AndFormula(
+            left_child=NotFormula(
+                child=AndFormula(
+                    left_child=a,
+                    right_child=NotFormula(
+                        child=b,
+                    ),
+                ),
+            ),
+            right_child=NotFormula(
+                child=AndFormula(
+                    left_child=b,
+                    right_child=NotFormula(
+                        child=a,
+                    ),
+                ),
+            ),
+        )
+
+    def visit_implies_formula(self, node, visited_children):
+        return NotFormula(
+            child=AndFormula(
+                left_child=visited_children[2],
+                right_child=NotFormula(
+                    child=visited_children[-1],
+                ),
+            ),
+        )
 
     def visit_interval(self, node, visited_children):
         lbb, _, lb, _, ub, _, ubb = visited_children
@@ -134,8 +182,17 @@ class FormulaVisitor(NodeVisitor):
     def visit_next_formula(self, node, visited_children):
         return NextFormula(child=visited_children[-1])
 
+    def visit_not_formula(self, node, visited_children):
+        return NotFormula(child=visited_children[-1])
+
     def visit_number(self, node, visited_children):
         return int(node.text)
+
+    def visit_or_formula(self, node, visited_children):
+        return AndFormula(
+            left_child=visited_children[2],
+            right_child=visited_children[-1],
+        )
 
     def visit_parenthesis_formula(self, node, visited_children):
         return visited_children[2]
