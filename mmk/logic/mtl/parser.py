@@ -6,6 +6,10 @@ __docformat__ = "google"
 from typing import Union
 
 from parsimonious import Grammar, NodeVisitor
+import numpy as np
+
+
+from mmk import MarkovChain
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from .formula import *
@@ -32,10 +36,10 @@ grammar = Grammar(
     until_within_formula
                         = state_list ws until ws within ws number ws formula
 
-    always          = "always" / "henceforth" / "[]"
-    eventually      = "eventually" / "<>"
+    always          = "always" / "henceforth" / "[]" / "□"
+    eventually      = "eventually" / "<>" / "◊"
     not             = "not" / "¬"
-    until           = "until" / "U"
+    until           = "until" / "U" / "⋃" / "◡"
     within          = "within"
 
     state           = ~"[A-Z0-9_]+"i

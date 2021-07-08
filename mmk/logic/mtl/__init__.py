@@ -1,5 +1,5 @@
 """
-Markob Temporal Logic.
+Markov Temporal Logic.
 """
 __docformat__ = "google"
 
