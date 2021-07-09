@@ -25,6 +25,7 @@ grammar = Grammar(
                               or_formula /
                               parenthesis_formula /
                               probability_formula /
+                              space_formula /
                               true /
                               false /
                               state_list
@@ -34,6 +35,7 @@ grammar = Grammar(
                               eventually_formula /
                               next_formula /
                               parenthesis_path_formula /
+                              space_path_formula /
                               until_within_formula /
                               until_formula
 
@@ -52,6 +54,8 @@ grammar = Grammar(
     parenthesis_path_formula
                             = "(" ws path_formula ws ")"
     probability_formula     = probability ws within ws interval ws path_formula
+    space_formula           = ws formula ws*
+    space_path_formula      = ws path_formula ws*
     until_formula           = formula ws until ws formula
     until_within_formula    = formula ws until ws within ws number ws formula
 
@@ -208,6 +212,12 @@ class FormulaVisitor(NodeVisitor):
             child=visited_children[-1],
             interval=visited_children[4],
         )
+
+    def visit_space_formula(self, node, visited_children):
+        return visited_children[1]
+
+    def visit_space_path_formula(self, node, visited_children):
+        return visited_children[1]
 
     def visit_state(self, node, visited_children):
         return node.text

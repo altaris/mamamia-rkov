@@ -22,6 +22,7 @@ grammar = Grammar(
                           eventually_within_formula /
                           eventually_formula /
                           not_formula /
+                          space_formula /
                           until_within_formula /
                           until_formula /
                           state_list
@@ -33,6 +34,7 @@ grammar = Grammar(
     eventually_within_formula
                         = eventually ws within ws number ws formula
     not_formula         = not ws formula
+    space_formula       = ws formula ws*
     until_formula       = state_list ws until ws formula
     until_within_formula
                         = state_list ws until ws within ws number ws formula
@@ -48,7 +50,7 @@ grammar = Grammar(
     state_list      = state comma_state*
 
     number          = ~"[0-9]+"i
-    ws              = ~"\s+"
+    ws              = ~"[\n\t\s]+"
     """
 )
 
@@ -88,6 +90,9 @@ class FormulaVisitor(NodeVisitor):
 
     def visit_number(self, node, visited_children):
         return int(node.text)
+
+    def visit_space_formula(self, node, visited_children):
+        return visited_children[1]
 
     def visit_until_formula(self, node, visited_children):
         return UntilFormula(
