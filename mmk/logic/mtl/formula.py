@@ -10,7 +10,7 @@ from typing import List, Optional
 from scipy.optimize import fixed_point
 import numpy as np
 
-from mmk import MarkovChain
+from mmk import MarkovChain, PRECISION
 
 # pylint: disable=missing-class-docstring
 
@@ -99,7 +99,7 @@ class EventuallyFormula(Formula):
             x = np.zeros(n)
             for _ in range(self.within):
                 x = a @ x + b
-        return x
+        return x.round(PRECISION)
 
 
 @dataclass
@@ -137,4 +137,4 @@ class UntilFormula(Formula):
         else:
             for _ in range(self.within):
                 x = a @ x + b
-        return x
+        return x.round(PRECISION)

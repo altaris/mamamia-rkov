@@ -11,9 +11,7 @@ from typing import List, Optional
 from scipy.optimize import fixed_point
 import numpy as np
 
-from mmk import MarkovChain
-
-EPSILON = 1e-7
+from mmk import MarkovChain, PRECISION
 
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
@@ -32,12 +30,7 @@ class Interval:
     def contains(self, x: np.ndarray) -> np.ndarray:
         lop = operator.ge if self.lower_bound_inclusive else operator.gt
         uop = operator.le if self.upper_bound_inclusive else operator.lt
-        # fmt: off
-        result = (
-            lop(x, self.lower_bound - EPSILON)
-            * uop(x, self.upper_bound + EPSILON)
-        )
-        # fmt: on
+        result = lop(x, self.lower_bound) * uop(x, self.upper_bound)
         return result.astype(float)
 
 
@@ -213,4 +206,4 @@ class UntilFormula(PathFormula):
         else:
             for _ in range(self.within):
                 x = a @ x + b
-        return x
+        return x.round(PRECISION)
