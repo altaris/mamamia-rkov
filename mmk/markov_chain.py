@@ -295,6 +295,27 @@ class MarkovChain:
         )
         return graph
 
+    def to_graphviz(self):
+        """
+        Returns a graphviz `Digraph` of the Markov chain. Requires `graphviz`.
+        """
+        # pylint: disable=import-outside-toplevel
+        try:
+            from graphviz import Digraph
+        except ImportError as e:
+            raise ImportError(
+                "Exporting a Markov chain to graphviz requires the "
+                "graphviz package: pip install graphviz"
+            ) from e
+
+        g = Digraph()
+        for u in self._states:
+            g.node(u)
+        for u, tu in self._transitions.items():
+            for v, w in tu.items():
+                g.edge(u, v, label=str(w))
+        return g
+
     def vector_to_state_weights(self, vector: np.ndarray) -> Dict[str, float]:
         """
         Inverse to `vector_to_state_weights`. For example, if the Markov chain
